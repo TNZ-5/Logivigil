@@ -27,7 +27,7 @@ aws dynamodb update-table `
 
 aws iam create-role `
   --role-name LambdaExecutionRole `
-  --assume-role-policy-document file://C:\Users\HotelKey\Desktop\DemoProject\LogVigil\src\main\java\com\application\services\trust-policy.json
+  --assume-role-policy-document file://C:\Users\Desktop\DemoProject\LogVigil\src\main\java\com\application\services\trust-policy.json
 
   aws iam attach-role-policy `
     --role-name LambdaExecutionRole `
@@ -46,13 +46,13 @@ aws iam create-role `
 
 ------------------------------------------------------------------------------
 
-C:\Users\HotelKey\Desktop\DemoProject\LogVigil\src\main\java\com\application\services\LambdaFunction.zip
+C:\Users\Desktop\DemoProject\LogVigil\src\main\java\com\application\services\LambdaFunction.zip
 
 aws lambda create-function `
   --function-name Link_SQS_DYNAMO`
   --runtime java11 `
   --handler LambdaFunction::handleRequest `
-  --zip-file fileb://C:\Users\HotelKey\Desktop\DemoProject\LogVigil\src\main\java\com\application\services\LambdaFunction.zip `
+  --zip-file fileb://C:\Users\Desktop\DemoProject\LogVigil\src\main\java\com\application\services\LambdaFunction.zip `
   --timeout 3000 `
   --tracing-config Mode=Active `
   --role arn:aws:iam::000000000000:role/LambdaExecutionRole
