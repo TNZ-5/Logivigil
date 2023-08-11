@@ -1,0 +1,73 @@
+-----------------------------------------------------------------------------
+aws dynamodb create-table `
+     --table-name LogStream `
+     --attribute-definitions `
+         AttributeName=id,AttributeType=S `
+     --key-schema `
+         AttributeName=id,KeyType=HASH `
+     --provisioned-throughput `
+         ReadCapacityUnits=5,WriteCapacityUnits=5 `
+     --endpoint-url http://localhost:4566
+----------------------------------------------------------------------------
+
+aws dynamodb update-time-to-live --table-name TTLExample --time-to-live-specification "Enabled=true, AttributeName=ttl" --endpoint-url http://localhost:4566
+-----------------------------------------------------------------------------
+
+aws dynamodb update-table `
+     --table-name LogStream `
+     --stream-specification StreamEnabled=true,StreamViewType=NEW_AND_OLD_IMAGES `
+     --endpoint-url http://localhost:4566
+
+-------------------------------------------------------------------------------
+ aws sqs create-queue --queue-name LogProcessingQueue `
+>> --endpoint-url http://localhost:4566 `
+>> --region us-west-2
+
+------------------------------------------------------------------------------
+
+aws iam create-role `
+  --role-name LambdaExecutionRole `
+  --assume-role-policy-document file://C:\Users\HotelKey\Desktop\DemoProject\LogVigil\src\main\java\com\application\services\trust-policy.json
+
+  aws iam attach-role-policy `
+    --role-name LambdaExecutionRole `
+    --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  aws iam attach-role-policy `
+    --role-name LambdaExecutionRole `
+    --policy-arn arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess `
+    --endpoint-url http://localhost:4566
+
+  aws iam attach-role-policy `
+    --role-name LambdaExecutionRole `
+    --policy-arn arn:aws:iam::aws:policy/AmazonSQSFullAccess `
+    --endpoint-url http://localhost:4566
+
+
+------------------------------------------------------------------------------
+
+C:\Users\HotelKey\Desktop\DemoProject\LogVigil\src\main\java\com\application\services\LambdaFunction.zip
+
+aws lambda create-function `
+  --function-name Link_SQS_DYNAMO`
+  --runtime java11 `
+  --handler LambdaFunction::handleRequest `
+  --zip-file fileb://C:\Users\HotelKey\Desktop\DemoProject\LogVigil\src\main\java\com\application\services\LambdaFunction.zip `
+  --timeout 3000 `
+  --tracing-config Mode=Active `
+  --role arn:aws:iam::000000000000:role/LambdaExecutionRole
+
+  ------------------------------------------------------------------------------
+
+  aws lambda create-event-source-mapping `
+    --function-name Link_SQS_DYNAMO `
+    --event-source-arn arn:aws:dynamodb:us-west-2:000000000000:table/LogStream/stream/2023-08-01T07:25:11.615 `
+    --starting-position LATEST `
+    --batch-size 5
+
+---------------------------------------------------------------------------------
+
+
+    aws sns create-topic --name Alerts --endpoint-url http://localhost:4566
+
+-----------------------------------------------------------------------------------

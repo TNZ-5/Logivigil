@@ -1,0 +1,113 @@
+CREATE TABLE LogSourcesDim (
+    log_source_id VARCHAR(36) PRIMARY KEY,
+    log_source_name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE LogCategoriesDim(
+    log_type_id VARCHAR(36) PRIMARY KEY ,
+    log_type_name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE LogStatusDim(
+    log_status_id VARCHAR(36) PRIMARY KEY,
+    log_status_name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE LogEndpointDim(
+     log_endpoint_id VARCHAR(36) PRIMARY KEY,
+     log_endpoint VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE LogIpAddressDim(
+  log_ip_id VARCHAR(36) PRIMARY KEY,
+  log_ip VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE Facts(
+    log_timestamp VARCHAR(255),
+    log_source_id VARCHAR(36),
+    log_type_id VARCHAR(36),
+    log_cpu_Usage VARCHAR(255),
+    log_ram_usage VARCHAR(255),
+    log_status_id VARCHAR(36),
+    log_ip_id VARCHAR(36),
+    log_endpoint_id VARCHAR(36),
+
+    FOREIGN KEY (log_source_id) REFERENCES LogSourcesDim(log_source_id),
+    FOREIGN KEY (log_type_id) REFERENCES LogCategoriesDim(log_type_id),
+    FOREIGN KEY (log_status_id) REFERENCES LogStatusDim(log_status_id),
+    FOREIGN KEY (log_ip_id) REFERENCES LogIpAddressDim(log_ip_id),
+    FOREIGN KEY (log_endpoint_id) REFERENCES LogEndpointDim(log_endpoint_id)
+);
+
+DELIMITER $$
+
+CREATE PROCEDURE insert_All(
+    IN timestamp varchar(255),
+    IN log_level VARCHAR(255),
+    IN cpu_usage INT,
+    IN ram_usage INT,
+    IN api_endpoint VARCHAR(255),
+    IN log_status VARCHAR(255),
+    IN log_service_name VARCHAR(255),
+    IN log_ip_in VARCHAR(255)
+)
+BEGIN
+
+    DECLARE source_id VARCHAR(35);
+    DECLARE api_endpoint_id VARCHAR(36);
+    DECLARE status_id VARCHAR(36);
+    DECLARE log_level_id VARCHAR(36);
+    DECLARE log_ip_addr VARCHAR(36);
+    DECLARE temp VARCHAR(36);
+
+    SET @temp = (SELECT log_source_id FROM logsourcesdim WHERE log_source_name = log_service_name);
+
+    IF(@temp IS NOT NULL) THEN
+        SET @source_id = @temp;
+    ELSE
+        INSERT INTO logsourcesdim VALUES(UUID(),log_service_name);
+        SET @source_id = (SELECT log_source_id FROM logsourcesdim WHERE log_source_name = log_service_name);
+    end if ;
+
+    SET @temp = (SELECT log_endpoint_id FROM logendpointdim WHERE log_endpoint = api_endpoint);
+
+    IF(@temp IS NOT NULL) THEN
+        SET @api_endpoint_id = @temp;
+    ELSE
+        INSERT INTO logendpointdim VALUES(UUID(),api_endpoint);
+        SET @api_endpoint_id = (SELECT log_endpoint_id FROM logendpointdim WHERE log_endpoint = api_endpoint);
+    end if ;
+
+    SET @temp = (SELECT log_status_id FROM logstatusdim WHERE log_status_name = log_status);
+
+    IF(@temp IS NOT NULL) THEN
+        SET @status_id = @temp;
+    ELSE
+        INSERT INTO logstatusdim VALUES(UUID(),log_status);
+        SET @status_id = (SELECT log_status_id FROM logstatusdim WHERE log_status_name = log_status);
+    end if ;
+
+    SET @temp = (SELECT log_type_id FROM logcategoriesdim WHERE log_type_name = log_level);
+
+    IF(@temp IS NOT NULL) THEN
+        SET @log_level_id = @temp;
+    ELSE
+        INSERT INTO logcategoriesdim VALUES(UUID(),log_level);
+        SET @log_level_id = (SELECT log_type_id FROM logcategoriesdim WHERE log_type_name = log_level);
+    end if ;
+
+    SET @temp = (SELECT log_ip_id FROM logipaddressdim WHERE log_ip = log_ip_in);
+
+    IF(@temp IS NOT NULL) THEN
+        SET @log_ip_addr = @temp;
+    ELSE
+        INSERT INTO logipaddressdim VALUES(UUID(),log_ip_in);
+        SET @log_ip_addr = (SELECT log_ip_id FROM logipaddressdim WHERE log_ip = log_ip_in);
+    end if ;
+
+    INSERT INTO facts values (timestamp,@source_id,@log_level_id,cpu_usage,ram_usage,@status_id,@log_ip_addr,@api_endpoint_id);
+
+END$$
+
+DELIMITER ;
